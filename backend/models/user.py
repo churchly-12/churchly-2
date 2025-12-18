@@ -1,0 +1,18 @@
+from pydantic import BaseModel, EmailStr
+from datetime import datetime
+from typing import Optional
+from bson import ObjectId
+
+class User(BaseModel):
+    id: Optional[str]
+    full_name: str
+    email: EmailStr
+    password: str
+    mobile: Optional[str]
+    parish_id: Optional[str]
+    is_active: bool = True
+    is_verified: bool = False
+    is_deleted: bool = False
+    deleted_at: Optional[datetime] = None
+    created_at: datetime = datetime.utcnow()
+    updated_at: datetime = datetime.utcnow()
