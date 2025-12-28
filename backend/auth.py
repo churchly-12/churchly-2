@@ -1,11 +1,18 @@
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from pydantic import BaseModel, EmailStr
-from database import users_collection, password_reset_tokens_collection
+from pydantic import BaseModel, EmailStr, Field
+from typing import Optional
+from database import users_collection, password_reset_tokens_collection, db
+
+# Temporary signups collection for unverified users
+pending_users_collection = db.pending_users
 from utils.security import hash_password, verify_password, create_jwt
 from datetime import datetime, timedelta
 from bson import ObjectId
 import uuid
+import random
+import os
+from services.email_service import send_email
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
@@ -13,10 +20,10 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 # Pydantic models
 class SignupSchema(BaseModel):
-    full_name: str
+    full_name: str = Field(min_length=1)
     email: EmailStr
-    password: str
-    parish_id: str
+    password: str = Field(min_length=8)
+    parish_id: Optional[str] = None
 
 class LoginSchema(BaseModel):
     email: EmailStr
@@ -29,6 +36,12 @@ class ResetPasswordSchema(BaseModel):
     token: str
     new_password: str
 
+class VerifyEmailSchema(BaseModel):
+    otp: str
+
+class CheckEmailSchema(BaseModel):
+    email: EmailStr
+
 # Routes
 @router.post("/signup")
 async def signup(data: SignupSchema):
@@ -36,24 +49,48 @@ async def signup(data: SignupSchema):
     existing_user = await users_collection.find_one({"email": data.email})
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
-    
-    # Create user
-    hashed_pw = hash_password(data.password)
-    user_doc = {
+
+    # Check if temp signup exists
+    existing_temp = await pending_users_collection.find_one({"email": data.email})
+    if existing_temp:
+        # Update existing temp signup
+        await pending_users_collection.delete_one({"email": data.email})
+
+    # Generate OTP for email verification
+    otp = f"{random.randint(100000, 999999)}"
+    verification_expires = datetime.utcnow() + timedelta(minutes=10)
+
+    print(f"DEBUG: otp={otp}, verification_expires={verification_expires}, type={type(verification_expires)}")
+
+    # Store temporary signup data
+    temp_doc = {
         "full_name": data.full_name,
         "email": data.email,
-        "password": hashed_pw,
-        "parish_id": ObjectId(data.parish_id),
-        "is_active": True,
-        "is_verified": False,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "password": hash_password(data.password),
+        "parish_id": data.parish_id,
+        "otp": otp,
+        "otp_expires": verification_expires,
+        "created_at": datetime.utcnow()
     }
-    result = await users_collection.insert_one(user_doc)
-    user_id = str(result.inserted_id)
-    
-    token = create_jwt(user_id)
-    return {"message": "Signup successful", "token": token, "user_id": user_id}
+    print(f"DEBUG: temp_doc={temp_doc}")
+    await pending_users_collection.insert_one(temp_doc)
+
+    # Send verification email
+    try:
+        await send_email(
+            to=data.email,
+            subject="Verify your Churchly account",
+            html=f"""
+            <p>Welcome to Churchly! Your verification code:</p>
+            <h2>{otp}</h2>
+            <p>This code expires in 10 minutes.</p>
+            """
+        )
+        print(f"OTP email sent successfully to {data.email}")
+    except Exception as e:
+        print(f"Failed to send verification email to {data.email}: {e}")
+
+    return {"message": "Please check your email for verification code."}
 
 @router.post("/login")
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -75,16 +112,28 @@ async def forgot_password(payload: ForgotPasswordSchema):
     if user:
         token = str(uuid.uuid4())
         reset_doc = {
-            "user_id": user["_id"],
+            "user_id": str(user["_id"]),
             "token": token,
-            "expires_at": datetime.utcnow() + timedelta(minutes=30),
+            "expires_at": datetime.utcnow() + timedelta(minutes=15),
             "created_at": datetime.utcnow()
         }
         await password_reset_tokens_collection.insert_one(reset_doc)
 
-        # TODO: Send email with reset link
-        # For now, just log it
-        print(f"Reset token for {user['email']}: {token}")
+        # Send password reset email
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+        reset_link = f"{frontend_url}/reset-password?token={token}"
+        try:
+            await send_email(
+                to=user["email"],
+                subject="Reset your Churchly password",
+                html=f"""
+                <p>Click below to reset your password:</p>
+                <a href="{reset_link}">Reset Password</a>
+                <p>Link expires in 15 minutes.</p>
+                """
+            )
+        except Exception as e:
+            print(f"Failed to send password reset email: {e}")
 
     return {"message": "If the email exists, a reset link was sent"}
 
@@ -104,3 +153,50 @@ async def reset_password(payload: ResetPasswordSchema):
     await password_reset_tokens_collection.delete_one({"_id": record["_id"]})
 
     return {"message": "Password reset successful"}
+
+@router.get("/check-email")
+async def check_email(email: str):
+    # Check if user exists
+    existing_user = await users_collection.find_one({"email": email})
+    if existing_user:
+        return {"exists": True, "message": "Email already registered"}
+    return {"exists": False}
+
+@router.post("/verify-email")
+async def verify_email(payload: VerifyEmailSchema):
+    # Find temp signup by OTP
+    temp_signup = await pending_users_collection.find_one({"otp": payload.otp})
+
+    if not temp_signup:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+
+    if temp_signup.get("otp_expires") < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="OTP expired")
+
+    # Check if user already exists (in case of duplicate verification)
+    existing_user = await users_collection.find_one({"email": temp_signup["email"]})
+    if existing_user:
+        await pending_users_collection.delete_one({"_id": temp_signup["_id"]})
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    # Create the actual user
+    user_doc = {
+        "full_name": temp_signup["full_name"],
+        "email": temp_signup["email"],
+        "password": temp_signup["password"],
+        "parish_id": temp_signup.get("parish_id"),
+        "is_active": True,
+        "is_verified": True,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+    }
+    result = await users_collection.insert_one(user_doc)
+    user_id = str(result.inserted_id)
+
+    # Clean up temp signup
+    await pending_users_collection.delete_one({"_id": temp_signup["_id"]})
+
+    # Create JWT token
+    token = create_jwt(user_id)
+
+    return {"message": "Email verified successfully. Account created.", "token": token, "user_id": user_id}

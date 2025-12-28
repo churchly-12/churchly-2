@@ -36,9 +36,13 @@ async def init_db():
     # Prayers indexes
     await prayers_collection.create_index("parish_id")
     await prayers_collection.create_index([("created_at", -1)])
+    await prayers_collection.create_index("is_approved")
+    await prayers_collection.create_index("expires_at", expireAfterSeconds=0)
 
     # Prayer responses indexes
     await prayer_responses_collection.create_index("prayer_id")
+    await prayer_responses_collection.create_index("is_approved")
+    await prayer_responses_collection.create_index("expires_at", expireAfterSeconds=0)
 
     # Announcements indexes
     await announcements_collection.create_index("parish_id")

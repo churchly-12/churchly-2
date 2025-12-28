@@ -5,7 +5,7 @@ from utils import hash_password
 
 async def create_admin():
     # Check if admin user exists
-    user = await db.users.find_one({"email": "admin@churchapp.com"})
+    user = await db.users.find_one({"email": "admin@church.com"})
     if user:
         print("Admin user already exists")
         return
@@ -13,8 +13,8 @@ async def create_admin():
     # Create admin user
     result = await db.users.insert_one({
         "full_name": "Admin User",
-        "email": "admin@churchapp.com",
-        "password": hash_password("admin@123"),
+        "email": "admin@church.com",
+        "password": hash_password("admin123"),
         "is_active": True,
         "is_verified": True,
         "created_at": datetime.utcnow(),

@@ -1,36 +1,46 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { postPrayerRequest } from "../../services/prayerService";
+import { useAuth } from "../../context/AuthContext";
 
 export default function NewPrayerRequest() {
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [title, setTitle] = useState("");
   const [details, setDetails] = useState("");
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleSubmit = async () => {
-    if (!title.trim() || !details.trim()) {
+    const titleTrim = title.trim();
+    const detailsTrim = details.trim();
+    if (!titleTrim || !detailsTrim) {
       alert("Please fill all fields");
       return;
     }
 
     try {
       const payload = {
-        userId: "user_001",
-        userName: "John Christopher",
-        requestText: `${title}: ${details}`,
+        title: titleTrim,
+        content: detailsTrim,
+        is_anonymous: isAnonymous,
       };
 
       const res = await postPrayerRequest(payload);
-      console.log(res.data); // check the response
       if (res.success) {
         alert("Prayer request submitted!");
-        navigate("/prayer-wall");
+        navigate("/users/prayer-wall");
       } else {
-        alert("Failed to submit prayer request");
+        alert("Failed to submit prayer request: " + (res.message || "Unknown error"));
       }
     } catch (err) {
-      console.error(err);
-      alert("Failed to submit prayer request");
+      console.error("Prayer submit error:", err);
+      const message =
+        err.response?.data?.detail?.[0]?.msg ||
+        err.response?.data?.detail ||
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to submit prayer request";
+      alert("Failed to submit prayer request: " + message);
     }
   };
 
@@ -51,9 +61,10 @@ export default function NewPrayerRequest() {
             </label>
             <input
               type="text"
-              placeholder="Eg: Pray for my exams"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              placeholder="Eg: Pray for my exams"
+              autoFocus
               className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -64,12 +75,26 @@ export default function NewPrayerRequest() {
               Details
             </label>
             <textarea
-              placeholder="Write your prayer request..."
               value={details}
               onChange={(e) => setDetails(e.target.value)}
+              placeholder="Write your prayer request..."
               rows={6}
               className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             />
+          </div>
+
+          {/* Anonymous Checkbox */}
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="anonymous"
+              checked={isAnonymous}
+              onChange={(e) => setIsAnonymous(e.target.checked)}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label htmlFor="anonymous" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+              Submit anonymously
+            </label>
           </div>
 
           {/* Submit Button */}

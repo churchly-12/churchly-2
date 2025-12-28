@@ -7,3 +7,5 @@ pydantic[email]
 python-multipart
 motor
 slowapi
+httpx
+python-dotenv

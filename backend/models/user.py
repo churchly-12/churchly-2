@@ -14,5 +14,9 @@ class User(BaseModel):
     is_verified: bool = False
     is_deleted: bool = False
     deleted_at: Optional[datetime] = None
+    email_verification_token: Optional[str] = None
+    email_verification_expires: Optional[datetime] = None
+    password_reset_token: Optional[str] = None
+    password_reset_expires: Optional[datetime] = None
     created_at: datetime = datetime.utcnow()
     updated_at: datetime = datetime.utcnow()

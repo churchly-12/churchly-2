@@ -61,6 +61,12 @@ class ParishCreate(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
 
+class PrayerUpdate(BaseModel):
+    is_approved: Optional[bool] = None
+
+class PrayerResponseUpdate(BaseModel):
+    is_approved: Optional[bool] = None
+
 # Admin authentication middleware
 async def require_admin(user_id: str = Depends(get_current_user)):
     """Require admin privileges and return user object with permissions"""
@@ -181,11 +187,10 @@ async def get_all_users(
         total = await users_collection.count_documents(query)
         
         return {
-            "users": users,
+            "data": users,
             "total": total,
             "page": page,
-            "limit": limit,
-            "total_pages": (total + limit - 1) // limit
+            "limit": limit
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch users: {str(e)}")
@@ -264,44 +269,17 @@ async def update_user(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update user: {str(e)}")
 
-@limiter.limit("5/minute")
 @router.delete("/users/{user_id}")
 async def delete_user(
     user_id: str,
-    current_user: dict = Depends(require_admin),
-    request: Request = None
+    current_user: dict = Depends(require_admin)
 ):
-    check_read_only_admin(current_user)
-    try:
-        # Prevent deleting yourself
-        if user_id == current_user["id"]:
-            raise HTTPException(status_code=400, detail="Cannot delete your own account")
+    result = await users_collection.delete_one({"_id": ObjectId(user_id)})
 
-        # Soft delete: mark as deleted
-        result = await users_collection.update_one(
-            {"_id": ObjectId(user_id)},
-            {"$set": {"is_deleted": True, "deleted_at": datetime.utcnow()}}
-        )
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
 
-        if result.matched_count == 0:
-            raise HTTPException(status_code=404, detail="User not found")
-
-        # Also soft delete user roles (or remove them)
-        await user_roles_collection.delete_many({"user_id": ObjectId(user_id)})
-
-        # Audit logging
-        await log_admin_action(
-            db=db,
-            admin_user=current_user,
-            action="USER_DELETED",
-            entity_type="User",
-            entity_id=user_id,
-            request=request
-        )
-
-        return {"message": "User deleted successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to delete user: {str(e)}")
+    return {"message": "User deleted permanently"}
 
 # Role Management
 @router.get("/roles")
@@ -595,6 +573,84 @@ async def delete_prayer(
         return {"message": "Prayer deleted successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete prayer: {str(e)}")
+
+@limiter.limit("5/minute")
+@router.patch("/prayers/{prayer_id}")
+async def update_prayer(
+    prayer_id: str,
+    prayer_data: PrayerUpdate,
+    current_user: dict = Depends(require_admin),
+    request: Request = None
+):
+    check_read_only_admin(current_user)
+    try:
+        update_data = {}
+        for field, value in prayer_data.dict(exclude_unset=True).items():
+            update_data[field] = value
+
+        update_data["updated_at"] = datetime.utcnow()
+
+        result = await prayers_collection.update_one(
+            {"_id": ObjectId(prayer_id)},
+            {"$set": update_data}
+        )
+
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Prayer not found")
+
+        # Audit logging
+        await log_admin_action(
+            db=db,
+            admin_user=current_user,
+            action="PRAYER_UPDATED",
+            entity_type="Prayer",
+            entity_id=prayer_id,
+            metadata={"updated_fields": list(update_data.keys())},
+            request=request
+        )
+
+        return {"message": "Prayer updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update prayer: {str(e)}")
+
+@limiter.limit("5/minute")
+@router.patch("/prayers/respond/{response_id}")
+async def update_prayer_response(
+    response_id: str,
+    response_data: PrayerResponseUpdate,
+    current_user: dict = Depends(require_admin),
+    request: Request = None
+):
+    check_read_only_admin(current_user)
+    try:
+        update_data = {}
+        for field, value in response_data.dict(exclude_unset=True).items():
+            update_data[field] = value
+
+        update_data["updated_at"] = datetime.utcnow()
+
+        result = await prayer_responses_collection.update_one(
+            {"_id": ObjectId(response_id)},
+            {"$set": update_data}
+        )
+
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Prayer response not found")
+
+        # Audit logging
+        await log_admin_action(
+            db=db,
+            admin_user=current_user,
+            action="PRAYER_RESPONSE_UPDATED",
+            entity_type="PrayerResponse",
+            entity_id=response_id,
+            metadata={"updated_fields": list(update_data.keys())},
+            request=request
+        )
+
+        return {"message": "Prayer response updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update prayer response: {str(e)}")
 
 # Parish Management
 @router.get("/parishes")

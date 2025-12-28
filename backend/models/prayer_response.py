@@ -7,6 +7,8 @@ class PrayerResponse(BaseModel):
     prayer_id: str
     user_id: str
     message: str
+    author_name: Optional[str] = None
+    is_approved: bool = True
     created_at: datetime = datetime.utcnow()
 
 class PrayerResponseCreate(BaseModel):

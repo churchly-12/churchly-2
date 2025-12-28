@@ -10,6 +10,7 @@ import Home from "./pages/users/Home";
 import Login from "./pages/auth/Login";
 import AdminLogin from "./pages/auth/AdminLogin";
 import Signup from "./pages/auth/Signup";
+import VerifyEmail from "./pages/auth/VerifyEmail";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import Devotions from "./pages/users/Devotions";
 import Rosary from "./pages/users/Rosary";
@@ -49,6 +50,8 @@ import AdminLanding from "./pages/admin/AdminLanding";
 import UserManagement from "./pages/admin/UserManagement";
 import RoleManagement from "./pages/admin/RoleManagement";
 import PrayerManagement from "./pages/admin/PrayerManagement";
+import AdminActivities from "./pages/admin/AdminActivities";
+import AdminYouthGroups from "./pages/admin/AdminYouthGroups";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminLogout from "./pages/admin/Logout";
 
@@ -411,6 +414,20 @@ function AppContent() {
                 </AdminLayout>
               </AdminRoute>
             } />
+            <Route path="/admin/activities" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminActivities />
+                </AdminLayout>
+              </AdminRoute>
+            } />
+            <Route path="/admin/youth-groups" element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminYouthGroups />
+                </AdminLayout>
+              </AdminRoute>
+            } />
             <Route path="/admin/settings" element={
               <AdminRoute>
                 <AdminLayout>
@@ -435,6 +452,7 @@ function AppContent() {
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/admin-login" element={<AdminLogin />} />
             <Route path="/auth/signup" element={<Signup />} />
+            <Route path="/auth/verify-email" element={<VerifyEmail />} />
             <Route path="/auth/forgot-password" element={<ForgotPassword />} />
             <Route path="*" element={<Navigate to="/auth/login" />} />
           </Routes>

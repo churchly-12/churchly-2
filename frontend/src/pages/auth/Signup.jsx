@@ -1,7 +1,7 @@
 import { useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
+import apiClient from "../../api/apiClient";
 import logo from "../../assets/churchly-logo.png";
 
 export default function Signup() {
@@ -15,14 +15,45 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
+  const [emailExists, setEmailExists] = useState(false);
 
   const updateForm = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
+    if (field === "email") {
+      setEmailExists(false);
+    }
+  };
+
+  const checkEmailExists = async (email) => {
+    if (!email) return;
+    try {
+      const response = await apiClient.get(`/auth/check-email?email=${encodeURIComponent(email)}`);
+      setEmailExists(response.data.exists);
+    } catch (err) {
+      console.log("Error checking email:", err);
+      setEmailExists(false);
+    }
   };
 
   const handleSignup = async (e) => {
     e.preventDefault();
     setError("");
+
+    if (!form.name.trim()) {
+      setError("Full name is required");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    if (form.password.length < 8) {
+      setError("Password must be at least 8 characters long");
+      return;
+    }
 
     if (form.password !== form.confirmPassword) {
       setError("Passwords do not match");
@@ -30,15 +61,33 @@ export default function Signup() {
     }
 
     try {
-      await axios.post("http://127.0.0.1:8008/auth/signup", {
-        name: form.name,
-        email: form.email,
-        password: form.password
+      await apiClient.post("/auth/signup", {
+        full_name: form.name || "",
+        email: form.email || "",
+        password: form.password || "",
+        parish_id: null
       });
 
-      navigate("/auth/login");
+      // Navigate to email verification page with email in state
+      navigate("/auth/verify-email", { state: { email: form.email } });
     } catch (err) {
-      setError("Signup failed. Email may already exist.");
+      console.log("Signup error:", err.response?.data);
+      const errorData = err.response?.data;
+      let errorMessage = "Signup failed. Please try again.";
+
+      if (errorData?.detail) {
+        if (typeof errorData.detail === 'string') {
+          errorMessage = errorData.detail;
+        } else if (Array.isArray(errorData.detail)) {
+          errorMessage = errorData.detail.map(e => typeof e === 'object' && typeof e.msg === 'string' ? e.msg : JSON.stringify(e)).join(', ');
+        } else if (typeof errorData.detail === 'object' && typeof errorData.detail.msg === 'string') {
+          errorMessage = errorData.detail.msg;
+        } else {
+          errorMessage = JSON.stringify(errorData.detail);
+        }
+      }
+
+      setError(errorMessage);
     }
   };
 
@@ -66,7 +115,9 @@ export default function Signup() {
           className="w-full mb-4 p-4 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-[#181818] text-[#3b2a20] dark:text-white"
           value={form.email}
           onChange={(e) => updateForm("email", e.target.value)}
+          onBlur={(e) => checkEmailExists(e.target.value)}
         />
+        {emailExists && <p className="text-red-600 mb-4 text-center">Email already registered</p>}
 
         <div className="relative mb-4">
           <input

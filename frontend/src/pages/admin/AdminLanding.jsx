@@ -1,12 +1,41 @@
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import {
   UserGroupIcon,
   ShieldCheckIcon,
-  ChatBubbleLeftRightIcon
+  ChatBubbleLeftRightIcon,
+  UserIcon
 } from "@heroicons/react/24/outline";
+import apiClient from "../../api/apiClient";
 
 export default function AdminLanding() {
   const navigate = useNavigate();
+  const [dashboardData, setDashboardData] = useState({
+    total_users: 0,
+    active_users: 0,
+    total_prayers: 0,
+    recent_prayers: 0,
+    total_parishes: 0,
+    pending_prayers: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardData();
+    const interval = setInterval(fetchDashboardData, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      const response = await apiClient.get("/admin/dashboard");
+      setDashboardData(response.data);
+    } catch (error) {
+      console.error("Failed to fetch dashboard data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const adminOptions = [
     {
@@ -22,6 +51,13 @@ export default function AdminLanding() {
       icon: ShieldCheckIcon,
       path: "/admin/roles",
       color: "emerald"
+    },
+    {
+      title: "Youth Groups",
+      description: "Manage youth groups, events, and announcements",
+      icon: UserIcon,
+      path: "/admin/youth-groups",
+      color: "orange"
     },
     {
       title: "Prayer Management",
@@ -56,6 +92,11 @@ export default function AdminLanding() {
               bg: "bg-emerald-50",
               icon: "text-emerald-600",
               hover: "hover:bg-emerald-100 hover:border-emerald-300"
+            },
+            orange: {
+              bg: "bg-orange-50",
+              icon: "text-orange-600",
+              hover: "hover:bg-orange-100 hover:border-orange-300"
             },
             violet: {
               bg: "bg-violet-50",
@@ -98,20 +139,26 @@ export default function AdminLanding() {
       {/* Quick Stats or Info */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 sm:p-6">
         <h2 className="text-xl font-semibold text-slate-900 mb-4">System Overview</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-slate-900">3</div>
-            <div className="text-sm text-slate-600">Total Users</div>
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="text-lg">Loading dashboard data...</div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-slate-900">1</div>
-            <div className="text-sm text-slate-600">Active Parishes</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-slate-900">{dashboardData.total_users}</div>
+              <div className="text-sm text-slate-600">Total Users</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-slate-900">{dashboardData.total_parishes}</div>
+              <div className="text-sm text-slate-600">Total Parishes</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-slate-900">{dashboardData.pending_prayers}</div>
+              <div className="text-sm text-slate-600">Pending Prayers</div>
+            </div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-slate-900">0</div>
-            <div className="text-sm text-slate-600">Pending Prayers</div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
