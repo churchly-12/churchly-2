@@ -16,7 +16,7 @@ from services.email_service import send_email
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter(tags=["Authentication"])
 
 # Pydantic models
 class SignupSchema(BaseModel):
@@ -94,15 +94,19 @@ async def signup(data: SignupSchema):
 
 @router.post("/login")
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = await users_collection.find_one({"email": form_data.username})
-    if not user:
-        raise HTTPException(status_code=400, detail="Invalid email or password")
+    try:
+        user = await users_collection.find_one({"email": form_data.username})
+        if not user:
+            raise HTTPException(status_code=400, detail="Invalid email or password")
 
-    if not verify_password(form_data.password, user["password"]):
-        raise HTTPException(status_code=400, detail="Invalid email or password")
+        if not verify_password(form_data.password, user["password"]):
+            raise HTTPException(status_code=400, detail="Invalid email or password")
 
-    token = create_jwt(str(user["_id"]))
-    return {"access_token": token, "token_type": "bearer", "user_id": str(user["_id"])}
+        token = create_jwt(str(user["_id"]))
+        return {"access_token": token, "token_type": "bearer", "user_id": str(user["_id"])}
+    except Exception as e:
+        print("LOGIN ERROR:", e)
+        raise
 
 @router.post("/forgot-password")
 async def forgot_password(payload: ForgotPasswordSchema):

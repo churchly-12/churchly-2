@@ -1,6 +1,9 @@
 from dotenv import load_dotenv
 load_dotenv()
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import users, content, prayer_requests
@@ -18,11 +21,12 @@ app = FastAPI(title="Spiritual App API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
 )
 
-app.include_router(auth_router)
+app.include_router(auth_router, prefix="/auth")
 app.include_router(users_router)
 app.include_router(content.router)
 app.include_router(prayer_requests.router)
