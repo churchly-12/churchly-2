@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { fetchTestimonies, reactToTestimony } from "../../services/testimonyService";
+import { API_BASE_URL } from "../../api/apiClient";
 
 const REACTIONS = [
   { type: "praise", icon: "🙌", label: "Praise" },
@@ -42,7 +43,7 @@ export default function Testimonials() {
 
     // Set up SSE for real-time updates
     const token = localStorage.getItem("token");
-    const eventSource = new EventSource(`http://127.0.0.1:8000/api/testimonies/stream?token=${token}`);
+    const eventSource = new EventSource(`${API_BASE_URL}/api/testimonies/stream?token=${token}`);
 
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchPrayers, reactToPrayer } from "../../services/prayerService";
+import { API_BASE_URL } from "../../api/apiClient";
 
 const REACTIONS = [
   { type: "prayed", icon: "🙏", label: "Prayed" },
@@ -41,7 +42,7 @@ export default function PrayerWall() {
 
     // Set up SSE for real-time updates
     const token = localStorage.getItem("token");
-    const eventSource = new EventSource(`http://127.0.0.1:8000/api/prayers/stream?token=${token}`);
+    const eventSource = new EventSource(`${API_BASE_URL}/api/prayers/stream?token=${token}`);
 
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);

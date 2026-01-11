@@ -1,0 +1,30 @@
+@font-face {
+  font-family: 'rosary';
+  src:  url('fonts/rosary.eot?tyej8w');
+  src:  url('fonts/rosary.eot?tyej8w#iefix') format('embedded-opentype'),
+    url('fonts/rosary.ttf?tyej8w') format('truetype'),
+    url('fonts/rosary.woff?tyej8w') format('woff'),
+    url('fonts/rosary.svg?tyej8w#rosary') format('svg');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+[class^="icon-"], [class*=" icon-"] {
+  /* use !important to prevent issues with browser extensions that change fonts */
+  font-family: 'rosary' !important;
+  speak: never;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+
+  /* Better Font Rendering =========== */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-rosary-for-praying-svgrepo-comrosary:before {
+  content: "\e900";
+}

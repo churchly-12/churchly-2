@@ -652,6 +652,60 @@ async def update_prayer_response(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update prayer response: {str(e)}")
 
+# Activity Management (Admin Audit Logs)
+@router.get("/activities")
+async def get_admin_activities(
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, ge=1, le=100),
+    action: Optional[str] = None,
+    entity_type: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    current_user: dict = Depends(require_admin)
+):
+    try:
+        from database import admin_audit_logs_collection
+        query = {}
+
+        if action:
+            query["action"] = {"$regex": action, "$options": "i"}
+
+        if entity_type:
+            query["entity_type"] = {"$regex": entity_type, "$options": "i"}
+
+        if start_date or end_date:
+            date_query = {}
+            if start_date:
+                date_query["$gte"] = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+            if end_date:
+                date_query["$lte"] = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+            query["created_at"] = date_query
+
+        # Get activities with pagination
+        skip = (page - 1) * limit
+        activities_cursor = admin_audit_logs_collection.find(query).sort("created_at", -1).skip(skip).limit(limit)
+
+        activities = []
+        async for activity in activities_cursor:
+            activity["id"] = str(activity["_id"])
+            del activity["_id"]
+            # Convert ObjectIds in metadata if any
+            activity = convert_objectids_to_strings(activity)
+            activities.append(activity)
+
+        # Get total count
+        total = await admin_audit_logs_collection.count_documents(query)
+
+        return {
+            "data": activities,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "total_pages": (total + limit - 1) // limit
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch activities: {str(e)}")
+
 # Parish Management
 @router.get("/parishes")
 async def get_all_parishes(current_user: dict = Depends(require_admin)):

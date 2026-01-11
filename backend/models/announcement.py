@@ -9,3 +9,10 @@ class Announcement(BaseModel):
     content: str
     created_by: str
     created_at: datetime = datetime.utcnow()
+    updated_at: Optional[datetime] = None
+
+class CreateAnnouncement(BaseModel):
+    parish_id: str
+    title: str
+    content: str
+    created_by: str

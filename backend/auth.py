@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Form, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
+import json
 from database import users_collection, password_reset_tokens_collection, db
 
 # Temporary signups collection for unverified users
@@ -26,6 +27,10 @@ class SignupSchema(BaseModel):
     parish_id: Optional[str] = None
 
 class LoginSchema(BaseModel):
+    email: EmailStr
+    password: str
+
+class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
@@ -94,19 +99,30 @@ async def signup(data: SignupSchema):
 
 @router.post("/login")
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    try:
-        user = await users_collection.find_one({"email": form_data.username})
-        if not user:
-            raise HTTPException(status_code=400, detail="Invalid email or password")
+    email = form_data.username
+    password = form_data.password
 
-        if not verify_password(form_data.password, user["password"]):
-            raise HTTPException(status_code=400, detail="Invalid email or password")
+    print("LOGIN ATTEMPT:", email)
 
-        token = create_jwt(str(user["_id"]))
-        return {"access_token": token, "token_type": "bearer", "user_id": str(user["_id"])}
-    except Exception as e:
-        print("LOGIN ERROR:", e)
-        raise
+    user = await users_collection.find_one({"email": email})
+    print("USER FOUND:", bool(user))
+
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid email or password")
+
+    password_ok = verify_password(password, user["password"])
+    print("PASSWORD MATCH:", password_ok)
+
+    if not password_ok:
+        raise HTTPException(status_code=400, detail="Invalid email or password")
+
+    token = create_jwt(str(user["_id"]))
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user_id": str(user["_id"]),
+    }
 
 @router.post("/forgot-password")
 async def forgot_password(payload: ForgotPasswordSchema):

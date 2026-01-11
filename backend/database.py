@@ -1,6 +1,5 @@
 from motor.motor_asyncio import AsyncIOMotorClient
-from fastapi import FastAPI
-import asyncio
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
@@ -10,11 +9,14 @@ engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
-# MongoDB
-MONGO_URI = "mongodb+srv://church_admin:25112025churchme@church-app.xqcry5c.mongodb.net/?retryWrites=true&w=majority"
+MONGODB_URI = os.getenv("MONGODB_URI")
+if not MONGODB_URI:
+    raise RuntimeError("MONGODB_URI not set")
 
-client = AsyncIOMotorClient(MONGO_URI)
-db = client.church_app  # your db name
+client = AsyncIOMotorClient(MONGODB_URI)
+db = client["church_app"]
+
+print("CONNECTED DB:", db)
 
 # Collections
 users_collection = db.users
@@ -25,8 +27,8 @@ prayer_reactions_collection = db.prayer_reactions
 testimony_reactions_collection = db.testimony_reactions
 testimonies_collection = db.testimonies
 notifications_collection = db.notifications
-announcements_collection = db.announcements
 events_collection = db.events
+announcements_collection = db.announcements
 roles_collection = db.roles
 user_roles_collection = db.user_roles
 password_reset_tokens_collection = db.password_reset_tokens
@@ -64,10 +66,6 @@ async def init_db():
     await notifications_collection.create_index("user_id")
     await notifications_collection.create_index([("created_at", -1)])
 
-    # Announcements indexes
-    await announcements_collection.create_index("parish_id")
-    await announcements_collection.create_index([("created_at", -1)])
-
     # Events indexes
     await events_collection.create_index("parish_id")
     await events_collection.create_index("event_date")
@@ -79,6 +77,3 @@ async def init_db():
     await user_roles_collection.create_index("user_id")
     await user_roles_collection.create_index("role_id")
 
-    # Legacy prayer requests TTL index (24 hours)
-    prayer_collection = db.prayer_requests
-    await prayer_collection.create_index("createdAt", expireAfterSeconds=86400)
