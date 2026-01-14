@@ -5,7 +5,6 @@ export default function DeleteAccount() {
   const navigate = useNavigate();
 
   const handleDelete = () => {
-    console.log("Account deleted");
     navigate("/login");
   };
 

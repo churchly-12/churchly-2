@@ -9,7 +9,6 @@ class Prayer(BaseModel):
     title: str
     content: str
     is_anonymous: bool = False
-    is_approved: bool = True
     is_deleted: bool = False
     deleted_at: Optional[datetime] = None
     created_at: datetime = datetime.utcnow()

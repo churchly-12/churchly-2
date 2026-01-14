@@ -106,7 +106,6 @@ export default function ActivitiesPage() {
                 aria-label={item.title}
                 onClick={() => {
                   /* Navigate to detail or open later — placeholder */
-                  console.log("open", item.title);
                 }}
               >
                 <div

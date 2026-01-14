@@ -1,9 +1,13 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { UserIcon, Cog6ToothIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
+import { UserIcon, Cog6ToothIcon, ArrowLeftIcon, BellIcon } from "@heroicons/react/24/outline";
+import { useEffect, useState } from "react";
+import { fetchNotifications, markNotificationsRead } from "../services/prayerService";
 
 export default function TopBar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Check if we're on settings sub-pages (not the main settings page)
   const isSettingsSubPage = location.pathname.startsWith('/settings/') && location.pathname !== '/settings';
@@ -13,6 +17,15 @@ export default function TopBar() {
   const isPrayerWallPage = location.pathname.includes('/prayer-wall');
   const isActivitiesPage = location.pathname.includes('/activities');
   const isYouthGroupsPage = location.pathname === '/youth-groups';
+
+  useEffect(() => {
+    const loadNotifications = async () => {
+      const data = await fetchNotifications();
+      setNotifications(data);
+      setUnreadCount(data.filter(n => !n.is_read).length);
+    };
+    loadNotifications();
+  }, []);
 
   return (
     <nav className="w-full shadow-md fixed top-0 left-0 z-40" style={{ backgroundColor: '#6F4E37' }}>
@@ -37,8 +50,25 @@ export default function TopBar() {
             Churchly
           </Link>
 
-          {/* Settings on the right */}
+          {/* Settings and Notifications on the right */}
           <div className="flex items-center space-x-3">
+            <button
+              onClick={async () => {
+                if (unreadCount > 0) {
+                  await markNotificationsRead();
+                  setUnreadCount(0);
+                  setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+                }
+              }}
+              className="text-white hover:text-gray-200 transition relative"
+            >
+              <BellIcon className="h-6 w-6" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
             <Link to="/users/settings" className="text-white hover:text-gray-200 transition">
               <Cog6ToothIcon className="h-6 w-6" />
             </Link>

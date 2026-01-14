@@ -7,7 +7,6 @@ export default function ReportProblem() {
   const [problem, setProblem] = useState("");
 
   const handleSend = () => {
-    console.log("Problem Report:", problem);
     navigate("/settings");
   };
 

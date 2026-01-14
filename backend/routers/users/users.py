@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from database import users_collection, parishes_collection
-from dependencies.auth import get_current_user
+from auth import get_current_user
 from utils.permissions import require_permission
 from utils.security import hash_password, verify_password
 from bson import ObjectId
@@ -19,6 +19,7 @@ async def profile(user_id: str = Depends(get_current_user)):
     if not user:
         return {"error": "User not found"}
     return {
+        "id": user_id,
         "full_name": user["full_name"],
         "email": user["email"],
         "parish_id": str(user["parish_id"]) if user.get("parish_id") else None

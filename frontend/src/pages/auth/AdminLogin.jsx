@@ -8,8 +8,8 @@ import logo from "../../assets/churchly-logo.png";
 export default function AdminLogin() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [email, setEmail] = useState("admin@churchapp.com");
-  const [password, setPassword] = useState("admin@123");
+  const [email, setEmail] = useState("admin@church.com");
+  const [password, setPassword] = useState("admin123");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 

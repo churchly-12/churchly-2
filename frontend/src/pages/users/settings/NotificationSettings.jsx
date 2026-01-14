@@ -7,7 +7,6 @@ export default function NotificationSettings() {
   const [enabled, setEnabled] = useState(true);
 
   const handleSave = () => {
-    console.log("Notifications enabled:", enabled);
     navigate("/settings");
   };
 

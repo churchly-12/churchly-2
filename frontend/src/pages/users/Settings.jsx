@@ -35,6 +35,7 @@ export default function SettingsPage() {
 
   const preferences = [
     { label: "Notifications", value: "Enabled", icon: <Bell size={20} /> },
+    { label: "My Testimonials", icon: <User size={20} /> },
   ];
 
   return (
@@ -93,7 +94,8 @@ export default function SettingsPage() {
           {parishInfo.map((item, i) => {
             const editRoutes = {
               "Family ID": "/users/settings/family-id",
-              "Community / Zone": "/users/settings/community-zone"
+              "Community / Zone": "/users/settings/community-zone",
+              "My Testimonials": "/users/settings/my-testimonials"
             };
 
             return (

@@ -7,7 +7,6 @@ export default function EditFamilyID() {
   const [familyId, setFamilyId] = useState("FAM-1274");
 
   const handleSave = () => {
-    console.log("Updated Family ID:", familyId);
     navigate("/settings");
   };
 

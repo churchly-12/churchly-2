@@ -13,7 +13,6 @@ export default function ChangePassword() {
       alert("New passwords do not match!");
       return;
     }
-    console.log("Password updated:", newPwd);
     navigate("/settings");
   };
 

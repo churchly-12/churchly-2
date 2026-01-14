@@ -4,8 +4,10 @@ A full-stack web application for church communities featuring daily devotions, p
 
 ## Project Structure
 
-- `backend/` - FastAPI backend with SQLAlchemy database
-- `frontend/` - React frontend with Vite
+- `backend/` - FastAPI backend with MongoDB database
+- `frontend/` - React frontend with Vite and Tailwind CSS
+- `ADMIN_SETUP.md` - Admin setup instructions
+- `FILE_STRUCTURE.md` - Detailed file structure documentation
 
 ## Getting Started
 
@@ -28,7 +30,7 @@ A full-stack web application for church communities featuring daily devotions, p
 
 4. Run the backend server:
    ```bash
-   uvicorn main:app --reload --host 0.0.0.0 --port 8008
+   uvicorn main:app --reload --host 127.0.0.1 --port 8000
    ```
 
 ### Frontend Setup
@@ -57,11 +59,22 @@ A full-stack web application for church communities featuring daily devotions, p
 - Prayer request submission and management
 - Admin panel for content management
 
-## Admin Access
+## Login Credentials
 
+### Admin Access
 - Email: admin@church.com
 - Password: admin123
+
+### User Access
+- Email: user@churchapp.com
+- Password: user@123
 
 ## API Documentation
 
 When backend is running, visit `http://localhost:8000/docs` for interactive API docs.
+
+## Recent Updates
+
+- Codebase cleaned up: removed unnecessary files, duplicates, and unused code
+- Updated project structure documentation
+- Added user login credentials to README

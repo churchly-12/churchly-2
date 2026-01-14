@@ -30,7 +30,6 @@ export default function Signup() {
       const response = await apiClient.get(`/auth/check-email?email=${encodeURIComponent(email)}`);
       setEmailExists(response.data.exists);
     } catch (err) {
-      console.log("Error checking email:", err);
       setEmailExists(false);
     }
   };
@@ -71,7 +70,6 @@ export default function Signup() {
       // Navigate to email verification page with email in state
       navigate("/auth/verify-email", { state: { email: form.email } });
     } catch (err) {
-      console.log("Signup error:", err.response?.data);
       const errorData = err.response?.data;
       let errorMessage = "Signup failed. Please try again.";
 

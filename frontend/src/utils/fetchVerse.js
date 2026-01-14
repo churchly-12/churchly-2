@@ -38,8 +38,6 @@ export async function fetchDailyVerse(verseRef) {
 
     return data;
   } catch (error) {
-    console.log("Error fetching verse:", error);
-
     // fallback — app never breaks
     return {
       reference: verseRef,

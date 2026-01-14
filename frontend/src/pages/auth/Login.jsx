@@ -18,16 +18,10 @@ export default function Login() {
     setError("");
 
     try {
-      const response = await apiClient.post(
-        "/auth/login",
-        new URLSearchParams({
-          username: email,
-          password: password
-        }),
-        {
-          headers: { "Content-Type": "application/x-www-form-urlencoded" }
-        }
-      );
+      const response = await apiClient.post("/auth/login", {
+        email: email,
+        password: password
+      });
 
       await login(response.data.access_token);
       navigate("/", { replace: true });

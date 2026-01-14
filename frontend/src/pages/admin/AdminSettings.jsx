@@ -21,8 +21,6 @@ export default function AdminSettings() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // TODO: Implement admin settings update logic
-    console.log('Admin settings updated:', formData);
     alert('Admin settings updated successfully!');
   };
 

@@ -1,45 +1,65 @@
-# Role presets for quick admin role creation
+# Role presets for common administrative roles
+# Each preset defines a set of permissions for different admin levels
 
 ROLE_PRESETS = {
-    "SUPER_ADMIN": {
+    "super_admin": {
         "name": "Super Admin",
         "permissions": [
             "admin_access",
-            "user_management",
-            "role_management",
-            "prayer_management",
-            "parish_management",
-            "content_management",
-            "system_settings",
-            "audit_logs"
+            "admin_read_only",
+            "manage_users",
+            "manage_roles",
+            "manage_prayers",
+            "manage_prayer_responses",
+            "manage_parishes",
+            "manage_announcements",
+            "manage_events",
+            "manage_testimonials",
+            "view_audit_logs",
+            "export_data"
         ]
     },
-    "MODERATOR": {
+    "admin": {
+        "name": "Admin",
+        "permissions": [
+            "admin_access",
+            "manage_users",
+            "manage_prayers",
+            "manage_prayer_responses",
+            "manage_announcements",
+            "manage_events",
+            "manage_testimonials",
+            "view_audit_logs"
+        ]
+    },
+    "moderator": {
         "name": "Moderator",
         "permissions": [
             "admin_access",
-            "user_management",
-            "prayer_management",
-            "content_management"
+            "admin_read_only",
+            "manage_prayers",
+            "manage_prayer_responses",
+            "manage_testimonials"
         ]
     },
-    "PARISH_ADMIN": {
-        "name": "Parish Admin",
-        "permissions": [
-            "admin_access",
-            "user_management",
-            "prayer_management",
-            "parish_management"
-        ]
-    },
-    "READ_ONLY_ADMIN": {
+    "read_only_admin": {
         "name": "Read-Only Admin",
         "permissions": [
-            "admin_access"
+            "admin_access",
+            "admin_read_only",
+            "view_audit_logs"
         ]
     }
 }
 
 def get_role_preset(preset_name: str):
-    """Get a role preset by name"""
-    return ROLE_PRESETS.get(preset_name.upper())
+    """
+    Get a role preset by name.
+
+    Args:
+        preset_name (str): The name of the preset (e.g., "admin", "moderator")
+
+    Returns:
+        dict or None: The preset dictionary with 'name' and 'permissions' keys, or None if not found
+    """
+    return ROLE_PRESETS.get(preset_name.lower())

@@ -7,7 +7,6 @@ export default function EditCommunityZone() {
   const [community, setCommunity] = useState("St. Joseph Community");
 
   const handleSave = () => {
-    console.log("Updated Community/Zone:", community);
     navigate("/settings");
   };
 

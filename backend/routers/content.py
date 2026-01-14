@@ -1,23 +1,16 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from database import SessionLocal
-from old_models import Devotion, Event
+from fastapi import APIRouter
+from database import events_collection
 
 router = APIRouter(prefix="/content", tags=["Content"])
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-# Devotions
+# Devotions - placeholder, no collection yet
 @router.get("/devotions")
-def get_devotions(db: Session = Depends(get_db)):
-    return db.query(Devotion).all()
+async def get_devotions():
+    # TODO: Implement devotions collection
+    return []
 
 # Events
 @router.get("/events")
-def get_events(db: Session = Depends(get_db)):
-    return db.query(Event).all()
+async def get_events():
+    events = await events_collection.find().to_list(None)
+    return events

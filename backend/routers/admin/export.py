@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from database import users_collection, prayers_collection, parishes_collection
-from dependencies.auth import get_current_user
+from auth import get_current_user
 from utils.permissions import require_permission
 import csv
 import io

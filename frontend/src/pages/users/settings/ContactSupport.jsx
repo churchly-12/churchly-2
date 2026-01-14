@@ -7,7 +7,6 @@ export default function ContactSupport() {
   const [message, setMessage] = useState("");
 
   const handleSend = () => {
-    console.log("Support message:", message);
     navigate("/settings");
   };
 

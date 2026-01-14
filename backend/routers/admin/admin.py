@@ -14,9 +14,9 @@ from database import (
     parishes_collection,
     db
 )
-from dependencies.auth import get_current_user
+from auth import get_current_user
 from utils.permissions import require_permission
-from utils import hash_password
+from utils.security import hash_password
 from services.audit_service import log_admin_action
 from data.role_presets import get_role_preset
 from core.admin_rate_limiter import limiter
@@ -554,11 +554,28 @@ async def delete_prayer(
         if result.matched_count == 0:
             raise HTTPException(status_code=404, detail="Prayer not found")
 
-        # Also soft delete associated responses (or delete them)
+        # Also soft delete associated responses, reactions, and notifications
         await prayer_responses_collection.update_many(
             {"prayer_id": ObjectId(prayer_id)},
             {"$set": {"is_deleted": True, "deleted_at": datetime.utcnow()}}
         )
+
+        await prayer_reactions_collection.update_many(
+            {"prayer_id": ObjectId(prayer_id)},
+            {"$set": {"is_deleted": True, "deleted_at": datetime.utcnow()}}
+        )
+
+        await notifications_collection.update_many(
+            {"related_id": prayer_id},
+            {"$set": {"is_deleted": True, "deleted_at": datetime.utcnow()}}
+        )
+
+        # Emit SSE delete event
+        from routers.prayer_requests import event_queue
+        await event_queue.put({
+            "type": "prayer_deleted",
+            "prayer_id": prayer_id
+        })
 
         # Audit logging
         await log_admin_action(
@@ -651,6 +668,60 @@ async def update_prayer_response(
         return {"message": "Prayer response updated successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update prayer response: {str(e)}")
+
+# Activity Management (Admin Audit Logs)
+@router.get("/activities")
+async def get_admin_activities(
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, ge=1, le=100),
+    action: Optional[str] = None,
+    entity_type: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    current_user: dict = Depends(require_admin)
+):
+    try:
+        from database import admin_audit_logs_collection
+        query = {}
+
+        if action:
+            query["action"] = {"$regex": action, "$options": "i"}
+
+        if entity_type:
+            query["entity_type"] = {"$regex": entity_type, "$options": "i"}
+
+        if start_date or end_date:
+            date_query = {}
+            if start_date:
+                date_query["$gte"] = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+            if end_date:
+                date_query["$lte"] = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+            query["created_at"] = date_query
+
+        # Get activities with pagination
+        skip = (page - 1) * limit
+        activities_cursor = admin_audit_logs_collection.find(query).sort("created_at", -1).skip(skip).limit(limit)
+
+        activities = []
+        async for activity in activities_cursor:
+            activity["id"] = str(activity["_id"])
+            del activity["_id"]
+            # Convert ObjectIds in metadata if any
+            activity = convert_objectids_to_strings(activity)
+            activities.append(activity)
+
+        # Get total count
+        total = await admin_audit_logs_collection.count_documents(query)
+
+        return {
+            "data": activities,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "total_pages": (total + limit - 1) // limit
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch activities: {str(e)}")
 
 # Parish Management
 @router.get("/parishes")
