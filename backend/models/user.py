@@ -10,6 +10,7 @@ class User(BaseModel):
     password: str
     mobile: Optional[str]
     parish_id: Optional[str]
+    role: str = "user"
     is_active: bool = True
     is_verified: bool = False
     is_deleted: bool = False

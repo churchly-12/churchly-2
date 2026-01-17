@@ -23,8 +23,9 @@ router = APIRouter(prefix="/api/prayers", tags=["Prayers"])
 @router.get("/")
 async def get_prayers(
     parish_id: Optional[str] = None,
-    user_id: str = Depends(get_current_user)
+    user = Depends(get_current_user)
 ):
+    user_id = str(user["_id"])
     try:
         query = {
             "is_approved": True,
@@ -60,8 +61,9 @@ async def get_prayers(
 @router.post("/post")
 async def create_prayer(
     prayer: PrayerCreate,
-    user_id: str = Depends(get_current_user)
+    user = Depends(get_current_user)
 ):
+    user_id = str(user["_id"])
     # await require_permission(user_id, "create_prayer")
     try:
         now = datetime.utcnow()
@@ -90,8 +92,9 @@ async def create_prayer(
 async def get_prayer_with_responses(
     prayer_id: str,
     since: datetime = Query(None),
-    user_id: str = Depends(get_current_user)
+    user = Depends(get_current_user)
 ):
+    user_id = str(user["_id"])
     prayer = await prayers_collection.find_one({
         "_id": ObjectId(prayer_id),
         "is_approved": True,
@@ -146,8 +149,9 @@ async def get_prayer_with_responses(
 async def respond_to_prayer(
     prayer_id: str,
     payload: PrayerResponseCreate,
-    user_id: str = Depends(get_current_user)
+    user = Depends(get_current_user)
 ):
+    user_id = str(user["_id"])
     await require_permission(user_id, "respond_prayer")
 
     prayer = await prayers_collection.find_one({"_id": ObjectId(prayer_id), "is_approved": True})
@@ -183,3 +187,36 @@ async def respond_to_prayer(
     }
 
     return {"success": True, "message": "Response added", "response": response_data}
+
+@router.get("/my-prayers")
+async def get_my_prayers(user = Depends(get_current_user)):
+    user_id = str(user["_id"])
+    try:
+        query = {"user_id": ObjectId(user_id)}
+        prayers_cursor = prayers_collection.find(query).sort("created_at", -1)
+        prayers = []
+        async for p in prayers_cursor:
+            p["id"] = str(p["_id"])
+            del p["_id"]
+            p["requestText"] = p["content"]
+            p["createdAt"] = p["created_at"]
+            p["approved"] = p.get("is_approved", True)
+            p["anonymous"] = p.get("is_anonymous", False)
+            prayers.append(p)
+        return {"success": True, "data": convert_objectids(prayers)}
+    except Exception as e:
+        print(e)
+        return {"success": False, "message": "Failed to fetch my prayers"}
+
+@router.delete("/{prayer_id}")
+async def delete_prayer(prayer_id: str, user = Depends(get_current_user)):
+    user_id = str(user["_id"])
+    try:
+        prayer = await prayers_collection.find_one({"_id": ObjectId(prayer_id), "user_id": ObjectId(user_id)})
+        if not prayer:
+            raise HTTPException(status_code=404, detail="Prayer not found or not owned by user")
+        await prayers_collection.delete_one({"_id": ObjectId(prayer_id)})
+        return {"success": True, "message": "Prayer deleted"}
+    except Exception as e:
+        print(e)
+        return {"success": False, "message": "Failed to delete prayer"}

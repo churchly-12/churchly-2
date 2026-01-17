@@ -20,12 +20,9 @@ export default function Login() {
     try {
       const response = await apiClient.post(
         "/auth/login",
-        new URLSearchParams({
-          username: email,
-          password: password
-        }),
         {
-          headers: { "Content-Type": "application/x-www-form-urlencoded" }
+          email,
+          password
         }
       );
 

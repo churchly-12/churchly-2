@@ -4,6 +4,7 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import users, content, prayer_requests
+from routers.testimonials import router as testimonials_router
 from routers.admin import router as admin_router
 from routers.users import router as users_router
 from routers.test_email import router as test_email_router
@@ -25,6 +26,7 @@ app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(content.router)
 app.include_router(prayer_requests.router)
+app.include_router(testimonials_router)
 app.include_router(admin_router)
 app.include_router(test_email_router)
 

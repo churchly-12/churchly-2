@@ -68,18 +68,14 @@ class PrayerResponseUpdate(BaseModel):
     is_approved: Optional[bool] = None
 
 # Admin authentication middleware
-async def require_admin(user_id: str = Depends(get_current_user)):
+async def require_admin(user = Depends(get_current_user)):
     """Require admin privileges and return user object with permissions"""
+    user_id = str(user["_id"])
     # Check admin access permission
     from utils.permissions import user_has_permission
     has_admin = await user_has_permission(user_id, "admin_access")
     if not has_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
-
-    # Get full user object
-    user = await users_collection.find_one({"_id": ObjectId(user_id)})
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
 
     # Get user permissions
     user["is_read_only_admin"] = await user_has_permission(user_id, "admin_read_only")
@@ -99,12 +95,8 @@ def check_read_only_admin(current_user: dict):
 # Get current admin user info
 @router.get("/me")
 async def get_current_admin(current_user: dict = Depends(require_admin)):
-    return {
-        "id": current_user["id"],
-        "full_name": current_user.get("full_name"),
-        "email": current_user.get("email"),
-        "is_read_only_admin": current_user.get("is_read_only_admin", False)
-    }
+    """Get current admin user information"""
+    return current_user
 
 # Dashboard analytics
 @router.get("/dashboard")

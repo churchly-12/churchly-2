@@ -7,6 +7,7 @@ from database import users_collection, password_reset_tokens_collection, db
 # Temporary signups collection for unverified users
 pending_users_collection = db.pending_users
 from utils.security import hash_password, verify_password, create_jwt
+from dependencies.auth import get_current_user
 from datetime import datetime, timedelta
 from bson import ObjectId
 import uuid
@@ -60,8 +61,6 @@ async def signup(data: SignupSchema):
     otp = f"{random.randint(100000, 999999)}"
     verification_expires = datetime.utcnow() + timedelta(minutes=10)
 
-    print(f"DEBUG: otp={otp}, verification_expires={verification_expires}, type={type(verification_expires)}")
-
     # Store temporary signup data
     temp_doc = {
         "full_name": data.full_name,
@@ -72,7 +71,6 @@ async def signup(data: SignupSchema):
         "otp_expires": verification_expires,
         "created_at": datetime.utcnow()
     }
-    print(f"DEBUG: temp_doc={temp_doc}")
     await pending_users_collection.insert_one(temp_doc)
 
     # Send verification email
@@ -86,22 +84,24 @@ async def signup(data: SignupSchema):
             <p>This code expires in 10 minutes.</p>
             """
         )
-        print(f"OTP email sent successfully to {data.email}")
     except Exception as e:
-        print(f"Failed to send verification email to {data.email}: {e}")
+        pass  # Silently fail for now
 
     return {"message": "Please check your email for verification code."}
 
 @router.post("/login")
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = await users_collection.find_one({"email": form_data.username})
+async def login(data: LoginSchema):
+    user = await users_collection.find_one({"email": data.email})
     if not user:
         raise HTTPException(status_code=400, detail="Invalid email or password")
 
-    if not verify_password(form_data.password, user["password"]):
+    if not verify_password(data.password, user["password"]):
         raise HTTPException(status_code=400, detail="Invalid email or password")
 
-    token = create_jwt(str(user["_id"]))
+    token = create_jwt({
+        "sub": str(user["_id"]),
+        "role": user.get("role", "user")
+    })
     return {"access_token": token, "token_type": "bearer", "user_id": str(user["_id"])}
 
 @router.post("/forgot-password")
@@ -185,6 +185,7 @@ async def verify_email(payload: VerifyEmailSchema):
         "email": temp_signup["email"],
         "password": temp_signup["password"],
         "parish_id": temp_signup.get("parish_id"),
+        "role": "user",
         "is_active": True,
         "is_verified": True,
         "created_at": datetime.utcnow(),
@@ -196,7 +197,19 @@ async def verify_email(payload: VerifyEmailSchema):
     # Clean up temp signup
     await pending_users_collection.delete_one({"_id": temp_signup["_id"]})
 
-    # Create JWT token
-    token = create_jwt(user_id)
+    # Fetch the user to get role
+    user = await users_collection.find_one({"_id": ObjectId(user_id)})
+    token = create_jwt({
+        "sub": user_id,
+        "role": user.get("role", "user")
+    })
 
     return {"message": "Email verified successfully. Account created.", "token": token, "user_id": user_id}
+
+@router.get("/me")
+async def me(current_user=Depends(get_current_user)):
+    return {
+        "id": str(current_user["_id"]),
+        "email": current_user["email"],
+        "role": current_user["role"]
+    }

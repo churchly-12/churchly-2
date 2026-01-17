@@ -1,3 +1,6 @@
 {
-  "urlRandomness": "VxcYdpg"
+  "urlRandomness": "VxcYdpg",
+  "dev": true,
+  "minify": false,
+  "https": false
 }

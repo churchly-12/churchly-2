@@ -1,11 +1,15 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import apiClient, { attachAuthInterceptors } from "../api/apiClient";
 
+export const TOKEN_KEY = "access_token";
+
 const AuthContext = createContext(null);
 
 const isTokenExpired = (token) => {
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
+    const expiresInMinutes = Math.round((payload.exp * 1000 - Date.now()) / 60000);
+    console.log("JWT expires in", expiresInMinutes, "minutes");
     return payload.exp * 1000 < Date.now();
   } catch {
     return true;
@@ -23,14 +27,14 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const restoreSession = async () => {
-    const storedToken = localStorage.getItem("token");
+    const storedToken = localStorage.getItem(TOKEN_KEY);
 
     if (storedToken && !isTokenExpired(storedToken)) {
       setToken(storedToken);
       // Try to fetch user info
       await fetchUserInfo(storedToken);
     } else {
-      localStorage.removeItem("token");
+      localStorage.removeItem(TOKEN_KEY);
       setToken(null);
       setUser(null);
     }
@@ -42,30 +46,22 @@ export const AuthProvider = ({ children }) => {
     if (!authToken) return;
 
     try {
-      // Try admin endpoint first
-      const response = await apiClient.get('/admin/me');
-      setUser({ ...response.data, isAdmin: true });
-      return;
+      const response = await apiClient.get('/users/profile');
+      setUser({ ...response.data, isAdmin: false });
     } catch (error) {
-      // Not admin or error, try regular user endpoint
-      try {
-        const response = await apiClient.get('/users/profile');
-        setUser({ ...response.data, isAdmin: false });
-      } catch (error) {
-        console.error('Failed to fetch user info:', error);
-        setUser(null);
-      }
+      console.error('Failed to fetch user info:', error);
+      setUser(null);
     }
   };
 
   const login = async (newToken) => {
-    localStorage.setItem("token", newToken);
+    localStorage.setItem(TOKEN_KEY, newToken);
     setToken(newToken);
     await fetchUserInfo(newToken);
   };
 
   const logout = async () => {
-    localStorage.removeItem("token");
+    localStorage.removeItem(TOKEN_KEY);
     setToken(null);
     setUser(null);
   };

@@ -36,3 +36,23 @@ export async function fetchParishes() {
     return [];
   }
 }
+
+export const fetchMyPrayers = async () => {
+  try {
+    const res = await apiClient.get(`${API_BASE}/my-prayers`);
+    return res.data.success ? res.data.data : [];
+  } catch (err) {
+    console.error("Failed to fetch my prayers:", err);
+    return [];
+  }
+};
+
+export const deletePrayer = async (id) => {
+  try {
+    const res = await apiClient.delete(`${API_BASE}/${id}`);
+    return res.data;
+  } catch (err) {
+    console.error("Failed to delete prayer:", err);
+    throw err;
+  }
+};

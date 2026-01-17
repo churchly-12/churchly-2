@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import TopBar from "./components/TopBar";
 import BottomNav from "./components/BottomNav";
 import AdminLayout from "./components/AdminLayout";
+import SplashScreen from "./components/SplashScreen";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
@@ -69,7 +70,7 @@ function AppContent() {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return null; // or a loading screen
+    return <SplashScreen />;
   }
 
   return (

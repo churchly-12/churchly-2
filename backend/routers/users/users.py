@@ -14,13 +14,15 @@ class ChangePasswordSchema(BaseModel):
     new_password: str
 
 @router.get("/profile")
-async def profile(user_id: str = Depends(get_current_user)):
-    user = await users_collection.find_one({"_id": ObjectId(user_id)})
-    if not user:
-        return {"error": "User not found"}
+async def profile(user = Depends(get_current_user)):
+    from utils.permissions import user_has_permission
+    user_id = str(user["_id"])
+    is_admin = await user_has_permission(user_id, "admin_access")
+    role = "admin" if is_admin else user.get("role", "user")
     return {
         "full_name": user["full_name"],
         "email": user["email"],
+        "role": role,
         "parish_id": str(user["parish_id"]) if user.get("parish_id") else None
     }
 
@@ -37,8 +39,8 @@ async def get_parishes():
 
 # Admin-only endpoint example
 @router.get("/all-users")
-async def all_users(user_id: str = Depends(get_current_user)):
-    await require_permission(user_id, "manage_users")
+async def all_users(user = Depends(get_current_user)):
+    await require_permission(str(user["_id"]), "manage_users")
     users_cursor = users_collection.find()
     users = []
     async for u in users_cursor:
@@ -46,17 +48,14 @@ async def all_users(user_id: str = Depends(get_current_user)):
     return users
 
 @router.put("/change-password")
-async def change_password(data: ChangePasswordSchema, user_id: str = Depends(get_current_user)):
-    user = await users_collection.find_one({"_id": ObjectId(user_id)})
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+async def change_password(data: ChangePasswordSchema, user = Depends(get_current_user)):
 
     if not verify_password(data.current_password, user["password"]):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
 
     hashed_pw = hash_password(data.new_password)
     await users_collection.update_one(
-        {"_id": ObjectId(user_id)},
+        {"_id": user["_id"]},
         {"$set": {"password": hashed_pw}}
     )
 
@@ -76,8 +75,7 @@ async def change_password(data: ChangePasswordSchema, user_id: str = Depends(get
     return {"message": "Password changed successfully"}
 
 @router.delete("/me")
-async def delete_my_account(user_id: str = Depends(get_current_user)):
-    user = await users_collection.find_one({"_id": ObjectId(user_id)})
+async def delete_my_account(user = Depends(get_current_user)):
     if user:
         # Send deletion notice email
         try:
@@ -92,5 +90,5 @@ async def delete_my_account(user_id: str = Depends(get_current_user)):
         except Exception as e:
             print(f"Failed to send account deletion email: {e}")
 
-    await users_collection.delete_one({"_id": ObjectId(user_id)})
+    await users_collection.delete_one({"_id": user["_id"]})
     return {"message": "Your account has been deleted"}

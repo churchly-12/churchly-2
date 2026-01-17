@@ -15,6 +15,7 @@ async def create_admin():
         "full_name": "Admin User",
         "email": "admin@church.com",
         "password": hash_password("admin123"),
+        "role": "admin",
         "is_active": True,
         "is_verified": True,
         "created_at": datetime.utcnow(),

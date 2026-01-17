@@ -1,15 +1,14 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
-export default function ProtectedRoute({ children }) {
-  const navigate = useNavigate();
-  const token = localStorage.getItem("token");
+const ProtectedRoute = () => {
+  const { auth } = useAuth();
 
-  useEffect(() => {
-    if (!token) {
-      navigate("/login");
-    }
-  }, [token, navigate]);
+  if (auth.isLoading) return null; // or loading spinner
 
-  return token ? children : null;
-}
+  return auth.isAuthenticated
+    ? <Outlet />
+    : <Navigate to="/login" replace />;
+};
+
+export default ProtectedRoute;
