@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, Image } from 'react-native';
-import { API } from '../services/api';
+import { View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../context/AuthContext';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -8,68 +9,91 @@ export default function LoginScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
-  const login = async () => {
-    setError('');
-    try {
-      const res = await API.post('/auth/login', {
-        email: email,
-        password: password,
-      });
+  const { login } = useAuth();
 
-      Alert.alert('Success', 'Logged in!');
-      navigation.replace('Home');
-    } catch (err) {
-      setError('Invalid email or password');
-    }
+  const handleLogin = async () => {
+    setError('');
+    if (!email.trim()) return setError('Email is required');
+    if (!password) return setError('Password is required');
+
+    const result = await login({ email, password, isAdminLogin: false });
+    if (!result.success) setError(result.error || 'Login failed');
   };
 
   return (
-    <View className="flex-1 justify-center items-center bg-[#f7efe6] px-8">
-      <View className="bg-white rounded-xl w-full max-w-sm p-8 shadow-lg">
-        <View className="items-center mb-8">
-          <Image source={require('../assets/church.png')} className="w-24 h-24 mb-4" />
-          <Text className="text-2xl font-bold text-[#3b2a20]">Welcome Back</Text>
-        </View>
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#f7efe6' }}>
+      <View style={{
+        backgroundColor: 'white',
+        borderRadius: 20,
+        width: '100%',
+        maxWidth: 400,
+        padding: 30,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+      }}>
 
+        {/* Logo */}
+        <Image
+          source={require('../../assets/churchly-logo.png')}
+          style={{ width: 100, height: 100, marginBottom: 20 }}
+          resizeMode="contain"
+        />
+
+        <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#3b2a20', marginBottom: 20 }}>Welcome Back</Text>
+
+        {/* Email Input */}
         <TextInput
-          className="w-full mb-4 p-4 border border-gray-300 rounded-xl bg-white text-[#3b2a20]"
           placeholder="Email"
           value={email}
           onChangeText={setEmail}
+          keyboardType="email-address"
           autoCapitalize="none"
+          style={{
+            width: '100%',
+            padding: 15,
+            marginBottom: 15,
+            borderWidth: 1,
+            borderColor: '#ccc',
+            borderRadius: 15,
+            backgroundColor: '#fff',
+            color: '#3b2a20',
+          }}
         />
 
-        <View className="relative mb-6">
+        {/* Password Input */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', borderWidth: 1, borderColor: '#ccc', borderRadius: 15, backgroundColor: '#fff', marginBottom: 15 }}>
           <TextInput
-            className="w-full p-4 border border-gray-300 rounded-xl bg-white text-[#3b2a20]"
             placeholder="Password"
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
+            style={{ flex: 1, padding: 15, color: '#3b2a20' }}
           />
-          <TouchableOpacity
-            className="absolute right-4 top-4"
-            onPress={() => setShowPassword(!showPassword)}
-          >
-            <Text className="text-[#6b4a2d]">{showPassword ? 'Hide' : 'Show'}</Text>
+          <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ paddingHorizontal: 15 }}>
+            <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color="#6b4a2d" />
           </TouchableOpacity>
         </View>
 
-        {error ? <Text className="text-red-600 mb-4 text-center">{error}</Text> : null}
+        {/* Error Message */}
+        {error ? <Text style={{ color: 'red', marginBottom: 10, textAlign: 'center' }}>{error}</Text> : null}
 
-        <TouchableOpacity
-          className="w-full bg-[#6b4a2d] py-4 rounded-xl mb-4"
-          onPress={login}
-        >
-          <Text className="text-white text-center font-semibold">Login</Text>
+        {/* Login Button */}
+        <TouchableOpacity onPress={handleLogin} style={{ width: '100%', padding: 15, backgroundColor: '#6b4a2d', borderRadius: 15, marginBottom: 10 }}>
+          <Text style={{ color: 'white', fontWeight: 'bold', textAlign: 'center' }}>Login</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          className="w-full py-4"
-          onPress={() => navigation.navigate('Register')}
-        >
-          <Text className="text-blue-600 text-center">Don't have an account? Sign up</Text>
+        {/* Signup Link */}
+        <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+          <Text style={{ color: 'blue', textAlign: 'center', marginTop: 10 }}>Don't have an account? Sign up</Text>
         </TouchableOpacity>
+
+        {/* Admin Portal Link */}
+        <TouchableOpacity onPress={() => navigation.navigate('AdminLogin')}>
+          <Text style={{ color: '#6b4a2d', fontWeight: 'bold', textAlign: 'center', marginTop: 10 }}>Admin Portal</Text>
+        </TouchableOpacity>
+
       </View>
     </View>
   );

@@ -1,16 +1,17 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import SplashScreen from '../components/SplashScreen';
+import AdminGuard from '../components/AdminGuard';
+import AuthGuard from '../components/AuthGuard';
 
 // Import screens
-import LoginScreen from '../screens/auth/LoginScreen';
-import SignupScreen from '../screens/auth/SignupScreen';
-import AdminLoginScreen from '../screens/auth/AdminLoginScreen';
-import VerifyEmailScreen from '../screens/auth/VerifyEmailScreen';
+import LoginScreen from '../screens/LoginScreen.js';
+import SignupScreen from '../screens/auth/SignupScreen.js';
+import VerifyEmailScreen from '../screens/auth/VerifyEmailScreen.js';
+import AdminLoginScreen from '../screens/auth/AdminLoginScreen2.js';
 import HomeScreen from '../screens/users/HomeScreen';
 import DevotionsScreen from '../screens/users/DevotionsScreen';
 import ActivitiesScreen from '../screens/users/ActivitiesScreen';
@@ -192,30 +193,46 @@ function AdminTabNavigator() {
 function MainStack({ isAdmin }) {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="MainTabs" component={isAdmin ? AdminTabNavigator : UserTabNavigator} />
+      <Stack.Screen
+        name="MainTabs"
+        component={() =>
+          isAdmin ? (
+            <AdminGuard>
+              <AdminTabNavigator />
+            </AdminGuard>
+          ) : (
+            <UserTabNavigator />
+          )
+        }
+      />
       <Stack.Screen name="Logout" component={isAdmin ? AdminLogout : LogoutScreen} />
     </Stack.Navigator>
   );
 }
 
 export default function AppNavigator() {
-  const { isAuthenticated, isLoading, isAdminLogin } = useAuth();
+   const { isAuthenticated, loading, isAdminMode } = useAuth();
 
-  if (isLoading) {
-    return <SplashScreen />;
-  }
+  if (loading) return <SplashScreen />;
 
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!isAuthenticated ? (
         <>
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Signup" component={SignupScreen} />
-          <Stack.Screen name="AdminLogin" component={AdminLoginScreen} />
           <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
+          <Stack.Screen name="AdminLogin" component={AdminLoginScreen} />
         </>
       ) : (
-        <Stack.Screen name="Main" component={() => <MainStack isAdmin={isAdminLogin} />} options={{ headerShown: false }} />
+        <Stack.Screen
+          name="Main"
+          component={() => (
+            <AuthGuard>
+              <MainStack isAdmin={isAdminMode} />
+            </AuthGuard>
+          )}
+        />
       )}
     </Stack.Navigator>
   );

@@ -195,3 +195,4 @@ const styles = StyleSheet.create({
     color: '#6b4a2d',
   },
 });
+
